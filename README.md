@@ -2,18 +2,35 @@
 
 Facility & event management platform with role-based dashboards for students, faculty, and administrators.
 
-## Features
-- Role-based access: student, faculty, admin dashboards and navigation.
-- Facility browsing and event booking requests with capacity guard.
-- Admin review: approve/reject requests, manage facilities, users, and reports.
-- Notifications and toasts for request status changes; requester/admin alerts.
-- Theming by role (colors) and welcome landing page at `/`.
+## Feature Coverage (current)
+- ✅ Registration & login (student/faculty/admin); JWT-based auth stored client-side.
+- ✅ Role-based routing and themed UI; welcome screen at `/`.
+- ✅ Dashboard per role (student/faculty/admin) with stats and recent requests.
+- ✅ Facilities browse with status and capacity; booking request form with capacity guard and success modal.
+- ✅ Admin approvals: approve/reject bookings with notes; admin toasts/badges for new requests.
+- ✅ Notifications: requester and admin notifications on submit/approve/reject; mark read/mark all.
+- ✅ Delete confirmations (my bookings, admin users); rejection modal surfaced on requester dashboards.
+- ✅ Basic reports charts (admin) for booking/facility stats.
+
+### Not Yet Implemented
+- Password reset via email.
+- File/document uploads for requests.
+- Real-time calendar view and time-block visualization.
+- Email delivery for notifications; current system notifications only.
+- CSV/PDF export for reports.
+
+## Screen Map
+- Welcome: public landing, single CTA to continue/login.
+- Login/Register: auth forms with role selection (register).
+- Student/Faculty: dashboard, facilities, request event, my bookings, notifications, profile.
+- Admin: dashboard, booking requests, facilities, users, reports, notifications, profile.
+- Not Found: fallback 404.
 
 ## Tech Stack
 - Frontend: React 18, TypeScript, Wouter, TanStack Query, shadcn/ui + TailwindCSS.
 - Backend: Express + TypeScript, Drizzle ORM (PostgreSQL).
-- Auth: JWT stored in localStorage; context-driven client auth.
-- Tooling: Vite, tsx, Recharts (admin reports), Zod + RHF forms.
+- Auth: JWT stored in localStorage; client context.
+- Tooling: Vite, tsx, Recharts (admin reports), Zod + React Hook Form.
 
 ## Prerequisites
 - Node.js 18+ and npm
@@ -29,7 +46,7 @@ PORT=5000
 
 ## Setup & Run
 ```
-npm install
+
 npm run dev
 ```
 - Dev server listens on `PORT` (default 5000) via Express; Vite serves client from the same entry.
@@ -53,4 +70,4 @@ script/        # Build and seed scripts
 ```
 
 ## Testing Notes
-No automated tests are defined. Run `npm run check` for type safety; exercise key flows manually: auth, booking request, admin approve/reject, notifications, and role redirects.
+No automated tests are defined. Run `npm run check` for type safety; manually verify: auth, booking submit with capacity guard, admin approve/reject, notifications flow, rejection modal, and role redirects.
