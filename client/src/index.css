@@ -87,6 +87,28 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+/* Role-based theming */
+body[data-role="student"] {
+  --primary: 0 84% 39%; /* red */
+  --primary-foreground: 0 0% 98%;
+  --sidebar-primary: 0 84% 39%;
+  --sidebar-primary-foreground: 0 0% 98%;
+}
+
+body[data-role="faculty"] {
+  --primary: 220 82% 55%; /* blue */
+  --primary-foreground: 0 0% 98%;
+  --sidebar-primary: 220 82% 55%;
+  --sidebar-primary-foreground: 0 0% 98%;
+}
+
+body[data-role="admin"] {
+  --primary: 0 0% 10%; /* near-black */
+  --primary-foreground: 0 0% 98%;
+  --sidebar-primary: 0 0% 10%;
+  --sidebar-primary-foreground: 0 0% 98%;
+}
+
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);

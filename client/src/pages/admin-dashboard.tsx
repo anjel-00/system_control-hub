@@ -1,10 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { BookingWithRelations, User, Facility } from "@shared/schema";
+import type { Notification } from "@shared/schema";
 import {
   Building2,
   Users,
@@ -15,6 +20,7 @@ import {
   AlertCircle,
   TrendingUp,
   ArrowRight,
+  Bell,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -99,6 +105,10 @@ function RecentRequestRow({ booking }: { booking: BookingWithRelations }) {
 }
 
 export default function AdminDashboard() {
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const seenNotifications = useRef<Set<number>>(new Set());
+
   const { data: bookings, isLoading: bookingsLoading } = useQuery<BookingWithRelations[]>({
     queryKey: ["/api/admin/bookings"],
   });
@@ -111,6 +121,49 @@ export default function AdminDashboard() {
     queryKey: ["/api/facilities"],
   });
 
+  const { data: notifications } = useQuery<Notification[]>({
+    queryKey: ["/api/notifications"],
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await apiRequest("PATCH", `/api/notifications/${id}/read`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
+    },
+  });
+
+  const unreadAdminNotifications = notifications?.filter((n) => n.status === "unread") || [];
+
+  useEffect(() => {
+    if (!unreadAdminNotifications.length) return;
+
+    unreadAdminNotifications.forEach((notification) => {
+      if (seenNotifications.current.has(notification.id)) return;
+      seenNotifications.current.add(notification.id);
+
+      toast({
+        title: notification.title,
+        description: notification.message,
+        duration: 3000,
+        action: (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              markReadMutation.mutate(notification.id);
+              setLocation("/admin/bookings");
+            }}
+          >
+            View
+          </Button>
+        ),
+      });
+    });
+  }, [unreadAdminNotifications, toast, markReadMutation, setLocation]);
+
   const totalBookings = bookings?.length || 0;
   const pendingBookings = bookings?.filter(b => b.status === "pending").length || 0;
   const approvedBookings = bookings?.filter(b => b.status === "approved").length || 0;
@@ -121,11 +174,22 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6 w-full">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Overview of facility bookings and system activity
-        </p>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
+            Overview of facility bookings and system activity
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative flex items-center gap-2 px-3 py-1 rounded-md border">
+            <Bell className="w-4 h-4" />
+            <span className="text-sm">Notifications</span>
+            {unreadAdminNotifications.length > 0 && (
+              <Badge variant="destructive" className="ml-1">{unreadAdminNotifications.length}</Badge>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

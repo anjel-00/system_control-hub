@@ -207,6 +207,20 @@ export async function registerRoutes(
         relatedBookingId: booking.id,
       });
 
+      // Notify all admins about the new booking request
+      const admins = await storage.getAdminUsers();
+      await Promise.all(
+        admins.map((admin) =>
+          storage.createNotification({
+            userId: admin.id,
+            title: "New Booking Request",
+            message: `${req.user!.email} submitted "${booking.eventName}" and awaits review.`,
+            type: "warning",
+            relatedBookingId: booking.id,
+          })
+        )
+      );
+
       res.status(201).json(booking);
     } catch (error) {
       console.error("Create booking error:", error);

@@ -6,13 +6,14 @@ import {
   users, facilities, bookings, notifications
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface IStorage {
   // Users
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getAdminUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
   updateUserPassword(id: number, hashedPassword: string): Promise<boolean>;
@@ -57,6 +58,10 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getAdminUsers(): Promise<User[]> {
+    return db.select().from(users).where(eq(users.role, "admin"));
+  }
+
   async createUser(user: InsertUser): Promise<User> {
     const hashedPassword = await bcrypt.hash(user.password, 10);
     const [newUser] = await db.insert(users).values({
@@ -94,6 +99,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<boolean> {
+    // Clean up dependent records to satisfy FK constraints
+    const userBookings = await db.select({ id: bookings.id }).from(bookings).where(eq(bookings.userId, id));
+    const bookingIds = userBookings.map((b) => b.id);
+
+    if (bookingIds.length > 0) {
+      await db.delete(notifications).where(inArray(notifications.relatedBookingId, bookingIds));
+    }
+
+    await db.delete(notifications).where(eq(notifications.userId, id));
+    await db.update(bookings).set({ reviewedBy: null }).where(eq(bookings.reviewedBy, id));
+    await db.delete(bookings).where(eq(bookings.userId, id));
     await db.delete(users).where(eq(users.id, id));
     return true;
   }

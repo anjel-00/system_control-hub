@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -35,6 +37,10 @@ const eventRequestSchema = z.object({
 type EventRequestFormData = z.infer<typeof eventRequestSchema>;
 
 export default function EventRequestPage() {
+  const [showCapacityModal, setShowCapacityModal] = useState(false);
+  const [capacityMessage, setCapacityMessage] = useState("This facility cannot accept more attendees.");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -69,11 +75,12 @@ export default function EventRequestPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/bookings/my"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       toast({
         title: "Request submitted!",
-        description: "Your event request has been submitted for review.",
+        description: "You have been notified. The admin will review your request.",
       });
-      setLocation("/dashboard");
+      setShowSuccessModal(true);
     },
     onError: (error: Error) => {
       toast({
@@ -85,6 +92,15 @@ export default function EventRequestPage() {
   });
 
   const onSubmit = (data: EventRequestFormData) => {
+    const facility = facilities?.find(f => f.id === data.facilityId);
+    if (facility?.capacity) {
+      const attendees = data.attendees ?? 0;
+      if (!attendees || attendees > facility.capacity) {
+        setCapacityMessage(`This facility allows up to ${facility.capacity} people. Please adjust your attendees or choose another facility.`);
+        setShowCapacityModal(true);
+        return;
+      }
+    }
     submitMutation.mutate(data);
   };
 
@@ -328,6 +344,41 @@ export default function EventRequestPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Capacity warning modal */}
+      <AlertDialog open={showCapacityModal} onOpenChange={setShowCapacityModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Capacity limit reached</AlertDialogTitle>
+            <AlertDialogDescription>
+              {capacityMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowCapacityModal(false)}>Got it</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Success modal */}
+      <AlertDialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Request submitted</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your request was sent. You will receive a notification once an admin reviews it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => {
+              setShowSuccessModal(false);
+              setLocation("/dashboard");
+            }}>
+              Go to dashboard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/lib/auth";
 import type { Facility, BookingWithRelations } from "@shared/schema";
 import { 
@@ -121,6 +123,7 @@ function StatCard({ title, value, icon: Icon, color }: { title: string; value: n
 
 export default function UserDashboard() {
   const { user } = useAuth();
+  const [rejectedBooking, setRejectedBooking] = useState<BookingWithRelations | null>(null);
 
   const { data: facilities, isLoading: facilitiesLoading } = useQuery<Facility[]>({
     queryKey: ["/api/facilities"],
@@ -129,6 +132,21 @@ export default function UserDashboard() {
   const { data: bookings, isLoading: bookingsLoading } = useQuery<BookingWithRelations[]>({
     queryKey: ["/api/bookings/my"],
   });
+
+  useEffect(() => {
+    if (bookingsLoading || !bookings) return;
+    const next = bookings.find(
+      (b) => b.status === "rejected" && !localStorage.getItem(`rejected-dismissed-${b.id}`)
+    );
+    setRejectedBooking(next || null);
+  }, [bookings, bookingsLoading]);
+
+  const dismissRejected = () => {
+    if (rejectedBooking) {
+      localStorage.setItem(`rejected-dismissed-${rejectedBooking.id}`, "1");
+    }
+    setRejectedBooking(null);
+  };
 
   const availableFacilities = facilities?.filter(f => f.status === "available").length || 0;
   const pendingBookings = bookings?.filter(b => b.status === "pending").length || 0;
@@ -238,6 +256,36 @@ export default function UserDashboard() {
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={!!rejectedBooking} onOpenChange={(open) => !open && dismissRejected()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Your request was rejected</AlertDialogTitle>
+            <AlertDialogDescription>
+              {rejectedBooking?.eventName ? (
+                <>The request "{rejectedBooking.eventName}" was rejected. You can review it or submit another booking.</>
+              ) : (
+                <>A recent booking request was rejected. You can review it or submit another booking.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={dismissRejected}>Dismiss</AlertDialogCancel>
+            <div className="flex gap-2">
+              <Link href="/my-bookings">
+                <Button variant="outline" onClick={dismissRejected}>
+                  View requests
+                </Button>
+              </Link>
+              <Link href="/request">
+                <AlertDialogAction onClick={dismissRejected}>
+                  Book another
+                </AlertDialogAction>
+              </Link>
+            </div>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

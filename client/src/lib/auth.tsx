@@ -29,6 +29,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
+  useEffect(() => {
+    const role = user?.role ?? "guest";
+    document.body.setAttribute("data-role", role);
+  }, [user]);
+
   const login = (user: User, token: string) => {
     setUser(user);
     localStorage.setItem("user", JSON.stringify(user));

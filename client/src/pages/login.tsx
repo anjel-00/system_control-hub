@@ -55,7 +55,7 @@ export default function LoginPage() {
       });
       
       // Set redirect path based on role
-      let path = "/dashboard";
+      let path = "/";
       if (data.user.role === "admin") {
         path = "/admin";
       } else if (data.user.role === "faculty") {

@@ -104,14 +104,14 @@ export default function Profile() {
     return (first + last).toUpperCase() || "U";
   };
 
-  const getRoleBadgeVariant = (role: string) => {
+  const getRoleBadgeClass = (role: string) => {
     switch (role) {
       case "admin":
-        return "destructive";
+        return "bg-neutral-900 text-white border-neutral-900";
       case "faculty":
-        return "secondary";
+        return "bg-blue-600 text-white border-blue-600";
       default:
-        return "outline";
+        return "bg-red-600 text-white border-red-600";
     }
   };
 
@@ -141,7 +141,7 @@ export default function Profile() {
             <p className="text-muted-foreground text-sm" data-testid="text-profile-email">
               {user.email}
             </p>
-            <Badge variant={getRoleBadgeVariant(user.role)} className="mt-2 capitalize" data-testid="badge-user-role">
+            <Badge variant="outline" className={`mt-2 capitalize ${getRoleBadgeClass(user.role)}`} data-testid="badge-user-role">
               {user.role}
             </Badge>
 
