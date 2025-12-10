@@ -26,14 +26,18 @@ function StatusBadge({ status }: { status: string }) {
     approved: { variant: "default", icon: CheckCircle2, className: "bg-green-600 hover:bg-green-600" },
     pending: { variant: "secondary", icon: AlertCircle, className: "bg-amber-500 hover:bg-amber-500 text-white" },
     rejected: { variant: "destructive", icon: XCircle, className: "" },
+    unknown: { variant: "outline", icon: AlertCircle, className: "text-muted-foreground" },
   };
-  const config = variants[status] || variants.pending;
+
+  const normalized = (status || "").toLowerCase();
+  const config = variants[normalized] || variants.unknown;
   const Icon = config.icon;
+  const label = normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : "Unknown";
 
   return (
     <Badge variant={config.variant} className={`${config.className} gap-1`}>
       <Icon className="w-3 h-3" />
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {label}
     </Badge>
   );
 }
